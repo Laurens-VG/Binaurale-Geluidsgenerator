@@ -10,7 +10,7 @@ Opleiding Industriële Wetenschappen Elektronica-ICT \
 Academiejaar 2019-2020
 
 Auteurs: Stephanie Maes, Laurens Van Goethem, Reiner De Smet, Lander T'Kindt \
-Project onder begeleiding van: Prof.  dr. ir. Paul Devos 
+Project onder begeleiding van: Prof.  dr. ir. Paul Devos \
 Algemeen begeleider:  Ing.  Matthias De Schepper
 
 ## Inhoud
