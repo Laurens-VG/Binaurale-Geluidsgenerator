@@ -1,0 +1,179 @@
+Info:
+    https://github.com/jaakkopasanen/Impulcifer/blob/master/impulcifer.py
+
+Taken:
+    - Hardware (spanningsdeler) potentiometer
+    - Potentiometer code
+    - Papers lezen
+    - Azimut delay code
+    - Image coordinates to HRIR  (class/ functie, database)
+    - Interaural Time Difference (Woodworth)
+    - HRIR + wav to headphones
+    - Uitbreiding:
+        - Head tracking
+        - Azimut, elevation, radius
+        -
+
+Stephanie:
+    Radius(amplitude aanpassen), elevation
+
+
+Laurens:
+    ILD en IID voor azimut
+    Check verschil van IID voor de 2 gescheiden channels
+
+
+Reiner:
+    Input signaal (audio) combineren met HRIR
+
+
+Lander:
+    Radius, elevation
+
+# LAURENS BINAURAL ###########################################################
+
+import math
+import wave
+import array
+from azimut import ITD, IID
+from scipy import fftpack
+from scipy.io import wavfile
+from scipy.io.wavfile import read
+
+
+def make_soundfile(left_freq, right_freq, data_size, fname):
+    frate = 11025.0  # framerate as a float
+    amp = 8000.0  # multiplier for amplitude
+    sine_list = []
+    for i in range(0, 9):
+        i = 10 * i
+        delay = ITD(600, i, 30)
+        print(delay)
+        # delay = azimut_delay(600, 89, 30)
+
+        # make a sine list ...
+        ranged = data_size + int(delay * frate)
+        for x in range(ranged):
+            if (x < delay * frate) & (x > 0):
+                right = 0
+                left = math.sin(2 * math.pi * left_freq * (x / frate))
+            else:
+                left = math.sin(2 * math.pi * left_freq * (x / frate))
+                right = math.sin(2 * math.pi * right_freq * (x / frate))
+            sine_list.append((left, right))
+    # get ready for the wave file to be saved ...
+    wav_file = wave.open(fname, "w")
+    # give required parameters
+    nchannels = 2
+    sampwidth = 2
+    framerate = int(frate)
+    nframes = data_size
+    comptype = "NONE"
+    compname = "not compressed"
+    # set all the parameters at once
+    wav_file.setparams((nchannels, sampwidth, framerate, nframes,
+                        comptype, compname))
+    # now write out the file ...
+    print("may take a moment ...")
+    for s in sine_list:
+        data = array.array('h')
+        data.append(int(s[0] * amp / 2))  # left channel
+        data.append(int(s[1] * amp / 2))  # right channel
+        # write the audio frames to file
+        wav_file.writeframes(data.tobytes())
+    wav_file.close()
+    print("%s written" % fname)
+
+
+# TODO: Splitsen van de 2 channels om IID op te kunnen toepassen, Probleem: file is read only
+def addto_soundfile(left_freq, right_freq, data_size, fname):
+    """
+    create a synthetic 'sine wave' wave file with frequency freq
+    file fname has a length of about data_size * 2
+    """
+    frate = 11025.0  # framerate as a float
+    amp = 8000.0  # multiplier for amplitude
+    sine_list = []
+    for i in range(0, 9):
+        i = 10 * i
+        delay = ITD(600, i, 30)
+        print(delay)
+        # delay = azimut_delay(600, 89, 30)
+
+        # make a sine list ...
+        ranged = data_size + int(delay * frate)
+        for x in range(ranged):
+            if (x < delay * frate) & (x > 0):
+                right = 0
+                left = math.sin(2 * math.pi * left_freq * (x / frate))
+            else:
+                left = math.sin(2 * math.pi * left_freq * (x / frate))
+                right = math.sin(2 * math.pi * right_freq * (x / frate))
+            sine_list.append((left, right))
+    # get ready for the wave file to be saved ...
+    wav_file = wave.open(fname, "w")
+    # give required parameters
+    nchannels = 2
+    sampwidth = 2
+    framerate = int(frate)
+    nframes = data_size
+    comptype = "NONE"
+    compname = "not compressed"
+    # set all the parameters at once
+    wav_file.setparams((nchannels, sampwidth, framerate, nframes,
+                        comptype, compname))
+    # now write out the file ...
+    print("may take a moment ...")
+    for s in sine_list:
+        data = array.array('h')
+        data.append(int(s[0] * amp / 2))  # left channel
+        data.append(int(s[1] * amp / 2))  # right channel
+        # write the audio frames to file
+        # wav_file.writeframes(data.tobytes())
+    # wav_file.close()
+    print("%s written" % fname)
+
+data = read("test.wav")
+Hl = IID(500, 89, "left")
+Hr = IID(800, 89, "right")
+print(Hl)
+print(Hr)
+print("Original")
+print(data)
+data[:, 0] = fftpack.fft(data[:, 0])
+data[:, 1] = fftpack.fft(data[:, 1])
+print("fft")
+print(data)
+data[:, 0] = data[:, 0] * Hl
+data[:, 1] = data[:, 1] * Hr
+print("mask")
+print(data)
+data[:, 0] = fftpack.rfft(data[:, 0])
+data[:, 1] = fftpack.rfft(data[:, 1])
+print("result")
+print(data)
+wavfile.write('wav_files/channel_1.wav', fs, data[:, 0])  # saving first column which corresponds to channel 1
+wavfile.write('wav_files/channel_2.wav', fs, data[:, 1])
+
+
+# LANDER BINAURAL #########################################################
+
+import sounddevice as sd
+import numpy as np
+import scipy.io.wavfile as wav
+import matplotlib.pyplot as plt
+
+# fs=44100
+# duration = 5  # seconds
+# myrecording = sd.rec(duration * fs, samplerate=fs, channels=2,dtype='float64')
+# print("Recording Audio")
+# sd.wait()
+# wav.write('./sounds/audio.wav', fs, myrecording)
+print("Audio recording complete , Play Audio")
+fs, data = wav.read('./sounds/audio.wav')
+plt.plot(data)
+plt.show()
+#sd.play(data, fs)
+#sd.wait()
+#print("Play Audio Complete")
+
